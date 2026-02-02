@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "syscallhook.h"
+#include "syscallhook.hpp"
 
 static thread_local int g_recursion_guard = 0;
 
