@@ -5,10 +5,10 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/types.h>
-#include <stdlib.h>
 #include <unistd.h>
 
 #include "syscallhook.hpp"
@@ -28,12 +28,12 @@ static inline bool hook_enabled() {
     return g_recursion_guard == 0;
 }
 
-using open_fn = int(*)(const char*, int, ...);
-using close_fn = int(*)(int);
-using ioctl_fn = int(*)(int, unsigned long, ...);
-using mmap_fn = void*(*)(void*, size_t, int, int, int, off_t);
-using munmap_fn = int(*)(void*, size_t);
-using poll_fn = int(*)(struct pollfd*, nfds_t, int);
+using open_fn = int (*)(const char*, int, ...);
+using close_fn = int (*)(int);
+using ioctl_fn = int (*)(int, unsigned long, ...);
+using mmap_fn = void* (*)(void*, size_t, int, int, int, off_t);
+using munmap_fn = int (*)(void*, size_t);
+using poll_fn = int (*)(struct pollfd*, nfds_t, int);
 
 static open_fn real_open = nullptr;
 static close_fn real_close = nullptr;
@@ -43,16 +43,21 @@ static munmap_fn real_munmap = nullptr;
 static poll_fn real_poll = nullptr;
 
 static void resolve_real_syscalls() {
-    if (!real_open) real_open = (open_fn)dlsym(RTLD_NEXT, "open");
-    if (!real_close) real_close = (close_fn)dlsym(RTLD_NEXT, "close");
-    if (!real_ioctl) real_ioctl = (ioctl_fn)dlsym(RTLD_NEXT, "ioctl");
-    if (!real_mmap) real_mmap = (mmap_fn)dlsym(RTLD_NEXT, "mmap");
-    if (!real_munmap) real_munmap = (munmap_fn)dlsym(RTLD_NEXT, "munmap");
-    if (!real_poll) real_poll = (poll_fn)dlsym(RTLD_NEXT, "poll");
+    if (!real_open)
+        real_open = (open_fn)dlsym(RTLD_NEXT, "open");
+    if (!real_close)
+        real_close = (close_fn)dlsym(RTLD_NEXT, "close");
+    if (!real_ioctl)
+        real_ioctl = (ioctl_fn)dlsym(RTLD_NEXT, "ioctl");
+    if (!real_mmap)
+        real_mmap = (mmap_fn)dlsym(RTLD_NEXT, "mmap");
+    if (!real_munmap)
+        real_munmap = (munmap_fn)dlsym(RTLD_NEXT, "munmap");
+    if (!real_poll)
+        real_poll = (poll_fn)dlsym(RTLD_NEXT, "poll");
 }
 
-__attribute__((constructor))
-static void syscallhook_init() {
+__attribute__((constructor)) static void syscallhook_init() {
     resolve_real_syscalls();
 }
 
@@ -72,7 +77,8 @@ extern "C" int open(const char* pathname, int flags, ...) {
 
     if (hook_enabled()) {
         RecursionGuard g;
-        if (syscallhook_open_pre) syscallhook_open_pre(&a);
+        if (syscallhook_open_pre)
+            syscallhook_open_pre(&a);
     }
 
     int saved_errno = 0;
@@ -84,7 +90,8 @@ extern "C" int open(const char* pathname, int flags, ...) {
         RecursionGuard g;
         int rr = r;
         int ee = saved_errno;
-        if (syscallhook_open_post) syscallhook_open_post(&a, &rr, &ee);
+        if (syscallhook_open_post)
+            syscallhook_open_post(&a, &rr, &ee);
         r = rr;
         saved_errno = ee;
     }
@@ -99,7 +106,8 @@ extern "C" int close(int fd) {
 
     if (hook_enabled()) {
         RecursionGuard g;
-        if (syscallhook_close_pre) syscallhook_close_pre(&a);
+        if (syscallhook_close_pre)
+            syscallhook_close_pre(&a);
     }
 
     int r = real_close(fd);
@@ -109,7 +117,8 @@ extern "C" int close(int fd) {
         RecursionGuard g;
         int rr = r;
         int ee = saved_errno;
-        if (syscallhook_close_post) syscallhook_close_post(&a, &rr, &ee);
+        if (syscallhook_close_post)
+            syscallhook_close_post(&a, &rr, &ee);
         r = rr;
         saved_errno = ee;
     }
@@ -130,7 +139,8 @@ extern "C" int ioctl(int fd, unsigned long request, ...) {
 
     if (hook_enabled()) {
         RecursionGuard g;
-        if (syscallhook_ioctl_pre) syscallhook_ioctl_pre(&a);
+        if (syscallhook_ioctl_pre)
+            syscallhook_ioctl_pre(&a);
     }
 
     int r = real_ioctl(fd, request, argp);
@@ -140,7 +150,8 @@ extern "C" int ioctl(int fd, unsigned long request, ...) {
         RecursionGuard g;
         int rr = r;
         int ee = saved_errno;
-        if (syscallhook_ioctl_post) syscallhook_ioctl_post(&a, &rr, &ee);
+        if (syscallhook_ioctl_post)
+            syscallhook_ioctl_post(&a, &rr, &ee);
         r = rr;
         saved_errno = ee;
     }
@@ -155,7 +166,8 @@ extern "C" void* mmap(void* addr, size_t length, int prot, int flags, int fd, of
 
     if (hook_enabled()) {
         RecursionGuard g;
-        if (syscallhook_mmap_pre) syscallhook_mmap_pre(&a);
+        if (syscallhook_mmap_pre)
+            syscallhook_mmap_pre(&a);
     }
 
     void* r = real_mmap(addr, length, prot, flags, fd, offset);
@@ -165,7 +177,8 @@ extern "C" void* mmap(void* addr, size_t length, int prot, int flags, int fd, of
         RecursionGuard g;
         void* rr = r;
         int ee = saved_errno;
-        if (syscallhook_mmap_post) syscallhook_mmap_post(&a, &rr, &ee);
+        if (syscallhook_mmap_post)
+            syscallhook_mmap_post(&a, &rr, &ee);
         r = rr;
         saved_errno = ee;
     }
@@ -180,7 +193,8 @@ extern "C" int munmap(void* addr, size_t length) {
 
     if (hook_enabled()) {
         RecursionGuard g;
-        if (syscallhook_munmap_pre) syscallhook_munmap_pre(&a);
+        if (syscallhook_munmap_pre)
+            syscallhook_munmap_pre(&a);
     }
 
     int r = real_munmap(addr, length);
@@ -190,7 +204,8 @@ extern "C" int munmap(void* addr, size_t length) {
         RecursionGuard g;
         int rr = r;
         int ee = saved_errno;
-        if (syscallhook_munmap_post) syscallhook_munmap_post(&a, &rr, &ee);
+        if (syscallhook_munmap_post)
+            syscallhook_munmap_post(&a, &rr, &ee);
         r = rr;
         saved_errno = ee;
     }
@@ -205,7 +220,8 @@ extern "C" int poll(struct pollfd* fds, nfds_t nfds, int timeout) {
 
     if (hook_enabled()) {
         RecursionGuard g;
-        if (syscallhook_poll_pre) syscallhook_poll_pre(&a);
+        if (syscallhook_poll_pre)
+            syscallhook_poll_pre(&a);
     }
 
     int r = real_poll(fds, nfds, timeout);
@@ -215,7 +231,8 @@ extern "C" int poll(struct pollfd* fds, nfds_t nfds, int timeout) {
         RecursionGuard g;
         int rr = r;
         int ee = saved_errno;
-        if (syscallhook_poll_post) syscallhook_poll_post(&a, &rr, &ee);
+        if (syscallhook_poll_post)
+            syscallhook_poll_post(&a, &rr, &ee);
         r = rr;
         saved_errno = ee;
     }

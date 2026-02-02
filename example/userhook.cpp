@@ -1,13 +1,12 @@
 #include "syscallhook.hpp"
-#include <stdio.h>
 #include <iostream>
 
 extern "C" void syscallhook_open_pre(const sh_open_args* a) {
-    std::cout << "syscallhook_open_pre" << std::endl;;
+    std::cout << "syscallhook_open_pre" << std::endl;
 }
 
 extern "C" void syscallhook_open_post(const sh_open_args* a, int* result, int* errno_inout) {
-    std::cout << "syscallhook_open_post" << std::endl;;
+    std::cout << "syscallhook_open_post" << std::endl;
 }
 
 extern "C" void syscallhook_close_pre(const sh_close_args* a) {
