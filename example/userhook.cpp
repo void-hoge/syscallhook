@@ -1,50 +1,52 @@
 #include "syscallhook.hpp"
-#include <iostream>
+#include <cstdio>
+#include <string>
+#include <map>
+#include <chrono>
+#include <linux/videodev2.h>
 
-extern "C" void syscallhook_open_pre(const sh_open_args* a) {
-    std::cout << "syscallhook_open_pre" << std::endl;
+class Timer {
+    std::chrono::system_clock::time_point start;
+public:
+    Timer() : start(std::chrono::system_clock::now()) {}
+
+    uint64_t elapsed_ms() {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now() - this->start).count();
+    }
+};
+
+static int g_videofd = 0;
+static int g_framecount = 0;
+static Timer g_timer;
+
+extern "C" void syscallhook_open_post(const sh_open_args* args, int* result, int* errno_inout) {
+    std::printf("open finished: %s -> %d\n", args->pathname, *result);
+    if (std::string(args->pathname).find("video") != std::string::npos) {
+        g_videofd = *result;
+    }
 }
 
-extern "C" void syscallhook_open_post(const sh_open_args* a, int* result, int* errno_inout) {
-    std::cout << "syscallhook_open_post" << std::endl;
-}
-
-extern "C" void syscallhook_close_pre(const sh_close_args* a) {
-    std::cout << "syscallhook_close_pre" << std::endl;
-}
-
-extern "C" void syscallhook_close_post(const sh_close_args* a, int* result, int* errno_inout) {
-    std::cout << "syscallhook_close_post" << std::endl;
-}
-
-extern "C" void syscallhook_ioctl_pre(const sh_ioctl_args* args) {
-    std::cout << "syscallhook_ioctl_pre" << std::endl;
-}
 
 extern "C" void syscallhook_ioctl_post(const sh_ioctl_args* args, int* result, int* errno_inout) {
-    std::cout << "syscallhook_ioctl_post" << std::endl;
+    std::printf("ioctl finished %d\n", args->fd);
+    if (args->fd == g_videofd) {
+        if (args->request == VIDIOC_DQBUF) {
+            if (*result == 0) {
+                g_framecount++;
+                std::printf("hoge\n");
+            }
+        }
+    }
 }
 
-extern "C" void syscallhook_mmap_pre(const sh_mmap_args* args) {
-    std::cout << "syscallhook_mmap_pre" << std::endl;
+__attribute__((constructor)) void init() {
+    g_videofd = 0;
+    g_framecount = 0;
+    g_timer = Timer();
 }
 
-extern "C" void syscallhook_mmap_post(const sh_mmap_args* args, void** result, int* errno_inout) {
-    std::cout << "syscallhook_mmap_post" << std::endl;
-}
-
-extern "C" void syscallhook_munmap_pre(const sh_munmap_args* args) {
-    std::cout << "syscallhook_munmap_pre" << std::endl;
-}
-
-extern "C" void syscallhook_munmap_post(const sh_munmap_args* args, int* result, int* errno_inout) {
-    std::cout << "syscallhook_munmap_post" << std::endl;
-}
-
-extern "C" void syscallhook_poll_pre(const sh_poll_args* args) {
-    std::cout << "syscallhook_poll_pre" << std::endl;
-}
-
-extern "C" void syscallhook_poll_post(const sh_poll_args* args, int* result, int* errno_inout) {
-    std::cout << "syscallhook_poll_post" << std::endl;
+__attribute__((destructor)) void calculate_fps() {
+    auto ms = g_timer.elapsed_ms();
+    std::printf("fps: %lf\n", (double)g_framecount/ms*1000);
 }
