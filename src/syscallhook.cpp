@@ -101,7 +101,6 @@ extern "C" int open(const char* pathname, int flags, ...) {
 }
 
 extern "C" int close(int fd) {
-    resolve_real_syscalls();
     sh_close_args a{fd};
 
     if (hook_enabled()) {
@@ -128,7 +127,6 @@ extern "C" int close(int fd) {
 }
 
 extern "C" int ioctl(int fd, unsigned long request, ...) {
-    resolve_real_syscalls();
     void* argp = nullptr;
     va_list ap;
     va_start(ap, request);
@@ -161,7 +159,6 @@ extern "C" int ioctl(int fd, unsigned long request, ...) {
 }
 
 extern "C" void* mmap(void* addr, size_t length, int prot, int flags, int fd, off_t offset) {
-    resolve_real_syscalls();
     sh_mmap_args a{addr, length, prot, flags, fd, offset};
 
     if (hook_enabled()) {
@@ -188,7 +185,6 @@ extern "C" void* mmap(void* addr, size_t length, int prot, int flags, int fd, of
 }
 
 extern "C" int munmap(void* addr, size_t length) {
-    resolve_real_syscalls();
     sh_munmap_args a{addr, length};
 
     if (hook_enabled()) {
@@ -215,7 +211,6 @@ extern "C" int munmap(void* addr, size_t length) {
 }
 
 extern "C" int poll(struct pollfd* fds, nfds_t nfds, int timeout) {
-    resolve_real_syscalls();
     sh_poll_args a{fds, nfds, timeout};
 
     if (hook_enabled()) {
