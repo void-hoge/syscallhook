@@ -16,34 +16,19 @@ public:
     }
 };
 
-static int g_videofd = 0;
 static int g_framecount = 0;
 static Timer g_timer;
 
-extern "C" void syscallhook_open_post(const sh_open_args* args, int* result, int* errno_inout) {
-    std::printf("open finished: %s -> %d\n", args->pathname, *result);
-    if (std::string(args->pathname).find("video") != std::string::npos) {
-        g_videofd = *result;
-    }
-}
-
-
 extern "C" void syscallhook_ioctl_post(const sh_ioctl_args* args, int* result, int* errno_inout) {
-    std::printf("ioctl finished %d\n", args->fd);
-    if (args->fd == g_videofd) {
-        if (args->request == VIDIOC_DQBUF) {
-            if (*result == 0) {
-                g_framecount++;
-                std::printf("hoge\n");
-            }
-        }
+    if (args->request == VIDIOC_DQBUF && *result == 0) {
+        if (g_framecount == 0)
+            g_timer = Timer();
+        g_framecount++;
     }
 }
 
 __attribute__((constructor)) void init() {
-    g_videofd = 0;
     g_framecount = 0;
-    g_timer = Timer();
 }
 
 __attribute__((destructor)) void calculate_fps() {
